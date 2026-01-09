@@ -1,1 +1,84 @@
+# I wanted to download a pi-hole container to use as an ad blocker for my Mac. This will be a step-by-step guide to downloading pi-hole via a docker compose file, editing the compose.yaml to fit your environment, and adding a system to use pi-hole. 
+
+
+CONTAINER CREATION
+1. visit https://github.com/pi-hole/docker-pi-hole for the compose.yaml file
+2. create a directory for your pi-hole; this is where the .yaml file will go
+3. IMPORTANT - make sure to name the file 'compose.yaml' because docker won't recognize it otherwise 
+4. use vim, nano, etc. to edit the file (pasted below) to fit your environment; and make any customization edits:
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      # DNS Ports
+      - "53:53/tcp"
+      - "53:53/udp"
+      # Default HTTP Port
+      - "80:80/tcp"
+      # Default HTTPs Port. FTL will generate a self-signed certificate
+      - "443:443/tcp"
+      # Uncomment the line below if you are using Pi-hole as your DHCP server
+      #- "67:67/udp"
+      # Uncomment the line below if you are using Pi-hole as your NTP server
+      #- "123:123/udp"
+    environment:
+      # Set the appropriate timezone for your location (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones), e.g:
+      TZ: 'Europe/London'
+      # Set a password to access the web interface. Not setting one will result in a random password being assigned
+      FTLCONF_webserver_api_password: '<yourpassword>'
+      # If using Docker's default `bridge` network setting the dns listening mode should be set to 'ALL'
+      FTLCONF_dns_listeningMode: 'ALL'
+    # Volumes store your data between container upgrades
+    volumes:
+      # For persisting Pi-hole's databases and common configuration file
+      - './etc-pihole:/etc/pihole'
+      # Uncomment the below if you have custom dnsmasq config files that you want to persist. Not needed for most starting fresh with Pi-hole v6. If you're upgrading from v5 you and have used this directory before, you should keep it enabled for the first v6 container start to allow for a complete migration. It can be removed afterwards. Needs environment variable FTLCONF_misc_etc_dnsmasq_d: 'true'
+      #- './etc-dnsmasq.d:/etc/dnsmasq.d'
+    cap_add:
+      # See https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+      # Required if you are using Pi-hole as your DHCP server, else not needed
+      - NET_ADMIN
+      # Required if you are using Pi-hole as your NTP client to be able to set the host's system time
+      - SYS_TIME
+      # Optional, if Pi-hole should get some more processing time
+      - SYS_NICE
+    restart: unless-stopped
+
+!! for my environment, I editied the timezone (TZ); and created a password to access the web infterface !!
+
+4. once the compose.yaml file is ready, create the container by running docker compose up -d. if everything's good, you'll get the following output:
+
+WARN[0000] No services to build                         
+[+] up 2/2
+ ✔ Network pihole_default Created                                                                                                                                                    0.0s 
+ ✔ Container pihole       Created   
+
+5. it's NOT NECESSARY, but I ran docker container list to make sure it was created
+
+
+ACCESSING THE WEB UI
+1. before accessing the web interface, you'll want to find your pi's local ip address. that can be found running ip a (look for eth0 or wlan0 depending on how your network is set up)
+2. access the web ui using http://<pi_ip>/admin
+3. enter the password you created in the compose.yaml file
+
+
+SETUP SYSTEM TO USE PI-HOLE
+NOTE: you can use your pi as a DNS server for all devices on your network to use pi-hole's services, but I wanted to try it only on my macbook first!
+1. click the apple in the top left corner
+2. system settings -> wifi
+3. find your local network and click 'details...' -> dns
+4. click the '+' and enter your pi's ip address
+5. on the dashboard, you should now see 1 group. it will be called 'default' (I renamed mine)
+6. as you search the web, you'll see statistics in real-time
+
+
+End. 
+
+
+
+
+
 
